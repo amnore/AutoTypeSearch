@@ -1,0 +1,55 @@
+AutoTypeSearch
+==============
+http://sourceforge.net/projects/autotypesearch
+
+
+This is a plugin to KeePass <http://www.KeePass.info> to provide a quick searching capability as
+an enhancement to the global auto-type system. If a global auto-type is requested, but no matching
+entry for the active window is found, this plugin will show a quick as-you-type search window which
+lets you to easily pick the entry to auto-type.
+
+
+Installation
+------------
+Place AutoTypeSearch.plgx in your KeePass Plugins folder.
+
+
+Usage
+-----
+AutoTypeSearch is initially configured to automatically appear after an unsuccessfull global
+auto-type. However, this can be changed in the KeePass Options window (an AutoTypeShow tab has
+been added). Here, a system-wide hot key can be configured to show the AutoTypeSearch window
+immediately. It is also possible to show the window by running KeePass.exe passing "/e:AutoTypeSearch"
+as a command line parameter.
+
+Once the window is shown, usage is extremely simple. Just start typing, and AutoTypeSearch will
+search your database for matching entries. By default, the Title, Url, Notes, Tags, and Custom Fields
+will be searched, but this can be configured in the AutoTypeShow tab of the KeePass Options window.
+
+Protected fields (like Password) will not be searched.
+
+The arrow keys can be used to move the selection in the list of results, then press Enter to auto-
+type the selected entry. Alternatively, press Shift+Enter to open the entry instead of auto-typing it.
+(These actions can also be customised in the Options window.) Clicking and Shift-Clicking an entry will
+also perform those actions.
+
+
+Uninstallation
+--------------
+Delete AutoTypeSearch.plgx from your KeePass Plugins folder.
+
+
+Bug Reporting, Questions, Comments, Feedback, Donations
+-------------------------------------------------------
+Please use the SourceForge project page: <http://sourceforge.net/projects/autotypesearch>
+Bugs can be reported using the issue tracker, for anything else, a discussion forum is available.
+
+
+Changelog
+---------
+v0.1 Initial release
+
+
+Attributions
+------------
+Throbber image by FlipDarius http://www.mediawiki.org/wiki/File:Loading.gif
