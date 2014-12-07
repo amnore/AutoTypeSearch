@@ -39,6 +39,13 @@ Uninstallation
 Delete AutoTypeSearch.plgx from your KeePass Plugins folder.
 
 
+Checking for updates
+--------------------
+If you want to use the KeePass Check for Updates function to check for updates to this plugin
+then it requires the SourceForgeUpdateChecker plugin to be installed too:
+http://sourceforge.net/projects/kpsfupdatechecker
+
+
 Bug Reporting, Questions, Comments, Feedback, Donations
 -------------------------------------------------------
 Please use the SourceForge project page: <http://sourceforge.net/projects/autotypesearch>
