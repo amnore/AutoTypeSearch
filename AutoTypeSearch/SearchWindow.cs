@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Media;
 using System.Reflection;
@@ -12,6 +13,7 @@ using KeePass.UI;
 using KeePass.Util;
 using KeePassLib;
 using KeePassLib.Collections;
+using KeePassLib.Native;
 
 namespace AutoTypeSearch
 {
@@ -25,6 +27,8 @@ namespace AutoTypeSearch
 		private readonly Bitmap mBannerImage;
 		private readonly Searcher mSearcher;
 
+		private readonly Stream mThrobberImageStream;
+
 		private int mBannerWidth = -1;
 		private int mMaximumExpandHeight;
 		private bool mManualSizeApplied;
@@ -37,19 +41,40 @@ namespace AutoTypeSearch
 		{
 			InitializeComponent();
 
+			// Mono can't load animated gifs from resx without crashing, so load it from an embedded resource instead
+			try
+			{
+				mThrobberImageStream = GetType().Assembly.GetManifestResourceStream("AutoTypeSearch.Throbber.gif");
+				if (mThrobberImageStream != null)
+				{
+					mThrobber.Image = Image.FromStream(mThrobberImageStream);
+				}
+			}
+			catch (Exception ex)
+			{
+				Debug.Fail("Failed to load Throbber.gif from embedded resource: " + ex.Message);
+			}
+
 			GlobalWindowManager.CustomizeControl(this);
 			UIUtil.SetExplorerTheme(mResults, true);
-			
 			SetItemHeight();
-
-			mThrobber.Top = mSearch.Top + (mSearch.Height - mThrobber.Height) / 2;
 		}
 
-		public SearchWindow(PwDatabase database, MainForm mainForm) : this()
+		public SearchWindow(PwDatabase database, MainForm mainForm, string infoBanner) : this()
 		{
 			mDatabase = database;
 			mMainForm = mainForm;
 
+			mInfoBanner.Height = Math.Max(mInfoBannerImage.Height, mInfoLabel.Font.Height) + mInfoBanner.Margin.Vertical;
+			mInfoLabel.Padding = new Padding(0, (mInfoBanner.Height - mInfoLabel.Font.Height) / 2, 0, 0);
+			mInfoLabel.Text = infoBanner;
+
+			if (infoBanner == null)
+			{
+				mInfoBanner.Visible = false;
+				mInfoBanner.Height = 0;
+			}
+			
 			var mainWindowType = mMainForm.GetType();
 			mSelectEntriesMethod = mainWindowType.GetMethod("SelectEntries", BindingFlags.Instance | BindingFlags.NonPublic);
 
@@ -62,6 +87,16 @@ namespace AutoTypeSearch
 			}
 			UpdateBanner();
 
+			ShowThrobber = false;
+
+			FontUtil.AssignDefaultItalic(mNoResultsLabel);
+		}
+
+
+		protected override void OnCreateControl()
+		{
+			base.OnCreateControl();
+
 			var windowRect = Settings.Default.WindowPosition;
 			var collapsedWindowRect = windowRect;
 			collapsedWindowRect.Height = mSearch.Bottom + (Height - ClientSize.Height);
@@ -69,8 +104,8 @@ namespace AutoTypeSearch
 			{
 				windowRect = new Rectangle(0, 0, Width, Height);
 				Height = collapsedWindowRect.Height;
-				
-				StartPosition = FormStartPosition.CenterScreen;
+
+				CenterToScreen();
 			}
 			else
 			{
@@ -80,10 +115,6 @@ namespace AutoTypeSearch
 
 			MinimumSize = new Size(MinimumSize.Width, collapsedWindowRect.Height);
 			mMaximumExpandHeight = Math.Max(windowRect.Height, MinimumSize.Height + mResults.ItemHeight);
-
-			ShowThrobber = false;
-
-			FontUtil.AssignDefaultItalic(mNoResultsLabel);
 		}
 
 		private static bool IsOnScreen(Rectangle rectangle)
@@ -127,6 +158,12 @@ namespace AutoTypeSearch
 				{
 					mBannerImage.Dispose();
 				}
+				if (mThrobber.Image != null)
+				{
+					mThrobber.Image.Dispose();
+					mThrobber.Image = null;
+					mThrobberImageStream.Dispose();
+				}
 				components.Dispose();
 			}
 			base.Dispose(disposing);
@@ -140,6 +177,7 @@ namespace AutoTypeSearch
 			if (searchResult == null)
 			{
 				Debug.Fail("Unexpected item in mResults");
+// ReSharper disable once HeuristicUnreachableCode - Not unreachable
 				return;
 			}
 			var drawingArea = e.Bounds;
@@ -167,7 +205,6 @@ namespace AutoTypeSearch
 			line2Bounds.Y += line2Bounds.Height - 1;
 			line2Bounds.X += SecondLineInset;
 			line2Bounds.Width -= SecondLineInset;
-
 			
 			if (searchResult.FieldName == PwDefs.TitleField)
 			{
@@ -175,7 +212,7 @@ namespace AutoTypeSearch
 
 				// Found the result in the title field. Highlight title in first line, use Username for second line.
 				DrawHighlight(e, line1Bounds, title, searchResult.Start, searchResult.Length);
-				TextRenderer.DrawText(e.Graphics, title, e.Font, line1Bounds.Location, SystemColors.WindowText, TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+				TextRenderer.DrawText(e.Graphics, title, e.Font, line1Bounds, SystemColors.WindowText, TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
 				TextRenderer.DrawText(e.Graphics, KPRes.UserName + ": " + searchResult.Entry.Strings.ReadSafeEx(PwDefs.UserNameField), e.Font, line2Bounds, SystemColors.GrayText, TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
 			}
 			else
@@ -183,7 +220,7 @@ namespace AutoTypeSearch
 				var title = searchResult.Entry.Strings.ReadSafe(PwDefs.TitleField);
 
 				// Found the result in not title field. Use title on first line, and show the matching result on second line
-				TextRenderer.DrawText(e.Graphics, title, e.Font, line1Bounds.Location, SystemColors.WindowText, TextFormatFlags.NoPadding);
+				TextRenderer.DrawText(e.Graphics, title, e.Font, line1Bounds, SystemColors.WindowText, TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
 
 				var fieldValue = searchResult.FieldValue.Replace('\n',' ');
 				var fieldNamePrefix = GetDisplayFieldName(searchResult.FieldName) + ": ";
@@ -354,7 +391,7 @@ namespace AutoTypeSearch
 
 		#region Mouse tracking
 		private Point mMouseEntryPosition;
-
+		
 		private void mResults_MouseEnter(object sender, EventArgs e)
 		{
 			mMouseEntryPosition = MousePosition;
@@ -422,6 +459,16 @@ namespace AutoTypeSearch
 				BannerFactory.UpdateBanner(this, mBanner, mBannerImage, PwDefs.ProductName, Resources.BannerText, ref mBannerWidth);
 			}
 		}
+
+		private void mSearch_LocationChanged(object sender, EventArgs e)
+		{
+			mThrobber.Location = new Point(mSearch.Right - mThrobber.Width - mThrobber.Margin.Right, mSearch.Top + (mSearch.Height - mThrobber.Height) / 2);
+		}
+
+		private void mResults_LocationChanged(object sender, EventArgs e)
+		{
+			mNoResultsLabel.Top = mResults.Top + (mResults.ItemHeight - mNoResultsLabel.Height) / 2;
+		}
 		#endregion
 
 		#region Searching
@@ -460,14 +507,22 @@ namespace AutoTypeSearch
 			}
 
 			bool complete;
+// ReSharper disable once CoVariantArrayConversion - array is never assigned to
 			mResults.Items.AddRange(mLastResultsUpdated.GetAvailableResults(ref mLastResultsUpdatedNextAvailableIndex, out complete).ToArray());
 
 			if (mResults.Items.Count > 0)
 			{
 				if (mResults.SelectedIndex == -1)
 				{
-					mResults.SelectedIndex = 0;
-					mResults.TopIndex = 0;
+					try
+					{
+						mResults.SelectedIndex = 0;
+						mResults.TopIndex = 0;
+					}
+					catch (Exception ex)
+					{
+						Debug.Fail("Failed to set selection on count of " + mResults.Items.Count + ": " + ex.Message);
+					}
 				}
 
 				if (!mManualSizeApplied)
@@ -502,7 +557,7 @@ namespace AutoTypeSearch
 						mThrobber.Visible = true;
 
 						// Set the margin on the textbox to allow room for the throbber
-						NativeMethods.SetTextBoxRightMargin(mSearch, mThrobber.Width);
+						NativeMethods.SetTextBoxRightMargin(mSearch, mThrobber.Width + mThrobber.Margin.Right);
 					}
 					else
 					{
@@ -524,8 +579,10 @@ namespace AutoTypeSearch
 				{
 					// Re-center the form on double-click
 					CenterToScreen();
+
+					Settings.Default.WindowPosition = new Rectangle(Left, Top, Width, mMaximumExpandHeight);
 				}
-				else
+				else if (!NativeLib.IsUnix())
 				{
 					NativeMethods.StartFormDrag(this);
 				}
@@ -663,6 +720,7 @@ namespace AutoTypeSearch
 			}
 		}
 
+// ReSharper disable once UnusedMethodReturnValue.Local - Generic helper, result may be used in future
 		private DialogResult ShowForegroundDialog(Form form)
 		{
 			mMainForm.EnsureVisibleForegroundWindow(false, false);

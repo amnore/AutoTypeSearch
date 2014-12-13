@@ -16,7 +16,7 @@ Place AutoTypeSearch.plgx in your KeePass Plugins folder.
 
 Usage
 -----
-AutoTypeSearch is initially configured to automatically appear after an unsuccessfull global
+AutoTypeSearch is initially configured to automatically appear after an unsuccessful global
 auto-type. However, this can be changed in the KeePass Options window (an AutoTypeShow tab has
 been added). Here, a system-wide hot key can be configured to show the AutoTypeSearch window
 immediately. It is also possible to show the window by running KeePass.exe passing "/e:AutoTypeSearch"
@@ -54,7 +54,12 @@ Bugs can be reported using the issue tracker, for anything else, a discussion fo
 
 Changelog
 ---------
-v0.1 Initial release
+v0.1
+ Initial release
+
+v0.2
+ Added information banner when search is shown as a result of an unsuccessful global auto-type
+ Compatibility with Linux/Mono
 
 
 Attributions

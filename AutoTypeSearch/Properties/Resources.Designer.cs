@@ -61,6 +61,15 @@ namespace AutoTypeSearch.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Global auto-type found no match for window: &quot;{0}&quot;.
+        /// </summary>
+        internal static string AutoTypeFailedMessage {
+            get {
+                return ResourceManager.GetString("AutoTypeFailedMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to AutoTypeSearch.
         /// </summary>
         internal static string AutoTypeSearch {
@@ -84,6 +93,16 @@ namespace AutoTypeSearch.Properties {
         internal static string EditEntry {
             get {
                 return ResourceManager.GetString("EditEntry", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Info {
+            get {
+                object obj = ResourceManager.GetObject("Info", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
             }
         }
         

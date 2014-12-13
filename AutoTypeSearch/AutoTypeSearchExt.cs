@@ -10,14 +10,16 @@ using KeePass.Util;
 
 namespace AutoTypeSearch
 {
-	// ReSharper disable once UnusedMember.Global : Plugin class instantiated by KeePass
+// ReSharper disable once ClassNeverInstantiated.Global - Plugin instantiated by KeePass
 	public sealed class AutoTypeSearchExt : Plugin
     {
 		private const string IpcEventName = "AutoTypeSearch";
+		private const int UnixAutoTypeWaitTime = 500; // Milliseconds
 		internal const string TagsVirtualFieldName = "***TAGS***";
 
 		private IPluginHost mHost;
 		private bool mAutoTypeSuccessful;
+		private string mLastAutoTypeWindowTitle;
 
 		public override string UpdateUrl
 		{
@@ -30,7 +32,10 @@ namespace AutoTypeSearch
 
 			IpcUtilEx.IpcEvent += OnIpcEvent;
 			GlobalWindowManager.WindowAdded += OnWindowAdded;
-			HotKeyManager.HotKeyPressed += HotKeyManager_HotKeyPressed;
+			if (!KeePassLib.Native.NativeLib.IsUnix())
+			{
+				HotKeyManager.HotKeyPressed += HotKeyManager_HotKeyPressed;
+			}
 			AutoType.SequenceQueriesEnd += OnAutoTypeSequenceQueriesEnd;
 
 			Options.LoadSettings(host);
@@ -47,9 +52,26 @@ namespace AutoTypeSearch
 			if (Settings.Default.ShowOnFailedAutoType)
 			{
 				mAutoTypeSuccessful = false;
+				mLastAutoTypeWindowTitle = e.TargetWindowTitle;
 				AutoType.FilterCompilePre += OnAutoType;
 
-				mHost.MainWindow.BeginInvoke((Action)OnAutoTypeEnd);
+				if (KeePassLib.Native.NativeLib.IsUnix())
+				{
+					// If Unix, can't rely on waiting for UI thread unblocking as the XDoTool mechanism calls DoEvents (in NativeMethods.TryXDoTool) before anything else.
+					// Instead, just wait half a second and hope for the best.
+					var timer = new Timer { Interval = UnixAutoTypeWaitTime };
+					timer.Tick += delegate
+					{
+						timer.Stop();
+						timer.Dispose();
+						OnAutoTypeEnd();
+					};
+					timer.Start();
+				}
+				else
+				{
+					mHost.MainWindow.BeginInvoke((Action)OnAutoTypeEnd);
+				}
 			}
 		}
 
@@ -68,7 +90,7 @@ namespace AutoTypeSearch
 
 			if (!mAutoTypeSuccessful)
 			{
-				ShowSearch();
+				ShowSearch(String.Format(Resources.AutoTypeFailedMessage, mLastAutoTypeWindowTitle));
 			}
 		}
 		#endregion
@@ -110,9 +132,12 @@ namespace AutoTypeSearch
 		{
 			IpcUtilEx.IpcEvent -= OnIpcEvent;
 			GlobalWindowManager.WindowAdded -= OnWindowAdded;
-			HotKeyManager.HotKeyPressed -= HotKeyManager_HotKeyPressed;
 
-			Options.UnregisterHotKey();
+			if (!KeePassLib.Native.NativeLib.IsUnix())
+			{
+				HotKeyManager.HotKeyPressed -= HotKeyManager_HotKeyPressed;
+				Options.UnregisterHotKey();
+			}
 
 			Options.SaveSettings(mHost);
 			
@@ -133,14 +158,15 @@ namespace AutoTypeSearch
 			}
 		}
 
-		private void ShowSearch()
+		private void ShowSearch(string infoText = null)
 		{
 			// Unlock, if required
 			mHost.MainWindow.ProcessAppMessage((IntPtr)Program.AppMessage.Unlock, IntPtr.Zero);
 
+
 			if (mHost.MainWindow.IsAtLeastOneFileOpen())
 			{
-				var searchWindow = new SearchWindow(mHost.Database, mHost.MainWindow);
+				var searchWindow = new SearchWindow(mHost.Database, mHost.MainWindow, infoText);
 				searchWindow.Show();
 				searchWindow.Activate();
 			}
