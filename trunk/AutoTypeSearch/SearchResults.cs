@@ -112,7 +112,7 @@ namespace AutoTypeSearch
 					if (foundIndex >= 0)
 					{
 						// Found a match, create a search result and add it
-						AddResult(new SearchResult(entry, fieldName, fieldValue, foundIndex, mTerm.Length));
+						AddResult(new SearchResult(entry, entry.Strings.ReadSafe(PwDefs.TitleField), fieldName, fieldValue, foundIndex, mTerm.Length));
 						return true;
 					}
 				}
@@ -150,7 +150,7 @@ namespace AutoTypeSearch
 			if (fieldValue.Length > candidate.Start + mTerm.Length && fieldValue.Substring(candidate.Start, mTerm.Length).Equals(mTerm, mStringComparison))
 			{
 				// Yep, match continues, so add it.
-				AddResult(new SearchResult(candidate.Entry, candidate.FieldName, fieldValue, candidate.Start, mTerm.Length));
+				AddResult(new SearchResult(candidate.Entry, candidate.Title, candidate.FieldName, fieldValue, candidate.Start, mTerm.Length));
 			}
 			else
 			{
@@ -167,6 +167,7 @@ namespace AutoTypeSearch
 				{
 					throw new InvalidOperationException("Search results have been completed");
 				}
+				result.SetResultIndex(mCount);
 				mResults[mCount++] = result;
 			}
 			mResultsUpdated.Set();
@@ -190,7 +191,7 @@ namespace AutoTypeSearch
 		/// <param name="index">Index to start returning from. Modified to be the first index not available yet on return.</param>
 		/// <param name="complete">Set to true if the results are complete, false if more results are pending but have not been returned.</param>
 		/// <returns></returns>
-		public IEnumerable<SearchResult> GetAvailableResults(ref int index, out bool complete)
+		public SearchResult[] GetAvailableResults(ref int index, out bool complete)
 		{
 			int count;
 			lock (mLock)
@@ -201,7 +202,7 @@ namespace AutoTypeSearch
 
 			if (count <= index)
 			{
-				return Enumerable.Empty<SearchResult>();
+				return new SearchResult[0];
 			}
 
 			var availableResults = new SearchResult[count - index];
