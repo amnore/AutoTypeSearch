@@ -61,6 +61,9 @@ v0.2
  Added information banner when search is shown as a result of an unsuccessful global auto-type
  Compatibility with Linux/Mono
 
+v0.3
+ Added search result prioritisation for entries where the match is found at the start of the field
+
 
 Attributions
 ------------

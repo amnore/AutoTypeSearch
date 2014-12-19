@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -217,7 +218,7 @@ namespace AutoTypeSearch
 			}
 			else
 			{
-				var title = searchResult.Entry.Strings.ReadSafe(PwDefs.TitleField);
+				var title = searchResult.Title;
 
 				// Found the result in not title field. Use title on first line, and show the matching result on second line
 				TextRenderer.DrawText(e.Graphics, title, e.Font, line1Bounds, SystemColors.WindowText, TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
@@ -472,6 +473,7 @@ namespace AutoTypeSearch
 		#endregion
 
 		#region Searching
+		private static readonly SearchResultPrecedence SearchResultPrecedenceComparer = new SearchResultPrecedence();
 		private void mSearch_TextChanged(object sender, EventArgs e)
 		{
 			if (mSearch.Text.Length < 2)
@@ -505,29 +507,52 @@ namespace AutoTypeSearch
 				mLastResultsUpdated = mCurrentSearch;
 				mLastResultsUpdatedNextAvailableIndex = 0;
 			}
-
+			var existingResultsCount = mResults.Items.Count;
+			
 			bool complete;
-// ReSharper disable once CoVariantArrayConversion - array is never assigned to
-			mResults.Items.AddRange(mLastResultsUpdated.GetAvailableResults(ref mLastResultsUpdatedNextAvailableIndex, out complete).ToArray());
-
-			if (mResults.Items.Count > 0)
+			var newResults = mLastResultsUpdated.GetAvailableResults(ref mLastResultsUpdatedNextAvailableIndex, out complete);
+			if (newResults.Length > 0)
 			{
-				if (mResults.SelectedIndex == -1)
+				mResults.BeginUpdate();
+				
+				SearchResult[] allResults;
+				if (existingResultsCount > 0)
 				{
-					try
-					{
-						mResults.SelectedIndex = 0;
-						mResults.TopIndex = 0;
-					}
-					catch (Exception ex)
-					{
-						Debug.Fail("Failed to set selection on count of " + mResults.Items.Count + ": " + ex.Message);
-					}
+					allResults = new SearchResult[existingResultsCount + newResults.Length];
+					mResults.Items.CopyTo(allResults, 0);
+					newResults.CopyTo(allResults, existingResultsCount);
+
+					mResults.Items.Clear();
+				}
+				else
+				{
+					allResults = newResults;
 				}
 
-				if (!mManualSizeApplied)
+				Array.Sort(allResults, SearchResultPrecedenceComparer);
+				mResults.Items.AddRange(allResults);
+				
+				mResults.EndUpdate();
+
+				if (allResults.Length > 0)
 				{
-					Height = Math.Min(mMaximumExpandHeight, MinimumSize.Height + (mResults.Items.Count * mResults.ItemHeight));
+					if (mResults.SelectedIndex == -1)
+					{
+						try
+						{
+							mResults.SelectedIndex = 0;
+							mResults.TopIndex = 0;
+						}
+						catch (Exception ex)
+						{
+							Debug.Fail("Failed to set selection on count of " + allResults.Length + ": " + ex.Message);
+						}
+					}
+
+					if (!mManualSizeApplied)
+					{
+						Height = Math.Min(mMaximumExpandHeight, MinimumSize.Height + (allResults.Length * mResults.ItemHeight));
+					}
 				}
 			}
 
@@ -542,6 +567,29 @@ namespace AutoTypeSearch
 					Height = MinimumSize.Height + mResults.ItemHeight;
 					mManualSizeApplied = false;
 				}
+			}
+		}
+
+		private class SearchResultPrecedence : IComparer<SearchResult>
+		{
+			public int Compare(SearchResult x, SearchResult y)
+			{
+				// First precedence is that if the result is the start of the field value, it's higher precedence than if it doesn't.
+				var result = -(x.Start == 0).CompareTo(y.Start == 0);
+
+				// Second precedence is that the start of the title field is higher precedence than the start of any other field
+				if (result == 0)
+				{
+					result = -(x.FieldName == PwDefs.TitleField).CompareTo(y.FieldName == PwDefs.TitleField);
+				}
+
+				// Both start the title field, so both equal. Have to have consistent ordering, so return final precedence based search index
+				if (result == 0)
+				{
+					result = x.ResultIndex.CompareTo(y.ResultIndex);
+				}
+				
+				return result;
 			}
 		}
 
