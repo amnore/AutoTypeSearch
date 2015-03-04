@@ -7,6 +7,8 @@ using KeePass.Forms;
 using KeePass.Plugins;
 using KeePass.UI;
 using KeePass.Util;
+using KeePassLib;
+using KeePassLib.Security;
 
 namespace AutoTypeSearch
 {
@@ -147,6 +149,18 @@ namespace AutoTypeSearch
 		#region Search Initiation
 		private void HotKeyManager_HotKeyPressed(object sender, HotKeyEventArgs e)
 		{
+			/*
+			var testGroup = mHost.Database.RootGroup.FindCreateGroup("Test", true);
+			for (int i = 0; i < 10000; i++)
+			{
+				var pwEntry = new PwEntry(true, true);
+				pwEntry.Strings.Set(PwDefs.TitleField, new ProtectedString(false, "Title " + i));
+				pwEntry.Strings.Set(PwDefs.UserNameField, new ProtectedString(false, "User " + i));
+				pwEntry.Strings.Set(PwDefs.UrlField, new ProtectedString(false, "http://website/" + i));
+				pwEntry.Strings.Set(PwDefs.NotesField, new ProtectedString(false, "Notes " + i + "\nLine 2\n\nLine 3\nLine 4\nLine 5\n Line 6\n Line 7\nLine 8\nLine 9\nLine 10"));
+				testGroup.AddEntry(pwEntry, true);
+			}*/
+
 			ShowSearch();
 		}
 
@@ -166,7 +180,7 @@ namespace AutoTypeSearch
 
 			if (mHost.MainWindow.IsAtLeastOneFileOpen())
 			{
-				var searchWindow = new SearchWindow(mHost.Database, mHost.MainWindow, infoText);
+				var searchWindow = new SearchWindow(mHost.MainWindow, infoText);
 				searchWindow.Show();
 				searchWindow.Activate();
 			}

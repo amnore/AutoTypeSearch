@@ -7,6 +7,7 @@ namespace AutoTypeSearch
 {
 	internal class SearchResult
 	{
+		private readonly PwDatabase mDatabase;
 		private readonly PwEntry mEntry;
 		private readonly string mFieldName;
 		private readonly int mStart;
@@ -15,8 +16,9 @@ namespace AutoTypeSearch
 		private readonly string mTitle;
 		private int mResultIndex = -1;
 
-		public SearchResult(PwEntry entry, string title, string fieldName, string fieldValue, int start, int length)
+		public SearchResult(PwDatabase database, PwEntry entry, string title, string fieldName, string fieldValue, int start, int length)
 		{
+			mDatabase = database;
 			mEntry = entry;
 			mFieldName = fieldName;
 			mFieldValue = fieldValue;
@@ -27,6 +29,11 @@ namespace AutoTypeSearch
 			Debug.Assert(mLength >= 0 && mStart >= 0, "Negative values are invalid");
 			Debug.Assert(mLength > 0 || mStart == 0, "Length must be non-zero (unless no highlight)");
 			Debug.Assert((mStart + mLength) <= fieldValue.Length, "Length out of range");
+		}
+
+		public PwDatabase Database
+		{
+			get { return mDatabase; }
 		}
 
 		public PwEntry Entry
