@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -22,7 +23,6 @@ namespace AutoTypeSearch
 	{
 		private const int SecondLineInset = 10;
 
-		private readonly PwDatabase mDatabase;
 		private readonly MainForm mMainForm;
 		private readonly MethodInfo mSelectEntriesMethod;
 		private readonly Bitmap mBannerImage;
@@ -61,9 +61,8 @@ namespace AutoTypeSearch
 			SetItemHeight();
 		}
 
-		public SearchWindow(PwDatabase database, MainForm mainForm, string infoBanner) : this()
+		public SearchWindow(MainForm mainForm, string infoBanner) : this()
 		{
-			mDatabase = database;
 			mMainForm = mainForm;
 
 			mInfoBanner.Height = Math.Max(mInfoBannerImage.Height, mInfoLabel.Font.Height) + mInfoBanner.Margin.Vertical;
@@ -79,7 +78,7 @@ namespace AutoTypeSearch
 			var mainWindowType = mMainForm.GetType();
 			mSelectEntriesMethod = mainWindowType.GetMethod("SelectEntries", BindingFlags.Instance | BindingFlags.NonPublic);
 
-			mSearcher = new Searcher(mDatabase);
+			mSearcher = new Searcher(mMainForm.DocumentManager.GetOpenDatabases().ToArray());
 
 			Icon = mMainForm.Icon;
 			using (var bannerIcon = new Icon(Icon, 48, 48))
@@ -193,7 +192,7 @@ namespace AutoTypeSearch
 				e.Graphics.FillRectangle(SystemBrushes.Window, drawingArea);
 			}
 
-			var image = GetImage(searchResult.Entry.CustomIconUuid, searchResult.Entry.IconId);
+			var image = GetImage(searchResult.Database, searchResult.Entry.CustomIconUuid, searchResult.Entry.IconId);
 			var imageMargin = (drawingArea.Height - image.Height) / 2;
 			e.Graphics.DrawImageUnscaled(image, drawingArea.Left + imageMargin, drawingArea.Top + imageMargin);
 
@@ -341,20 +340,17 @@ namespace AutoTypeSearch
 			}
 		}
 
-		private Image GetImage(PwUuid customIconId, PwIcon iconId)
+		private Image GetImage(PwDatabase database, PwUuid customIconId, PwIcon iconId)
 		{
 			Image image = null;
-			if (mDatabase != null)
+			if (!customIconId.Equals(PwUuid.Zero))
 			{
-				if (!customIconId.Equals(PwUuid.Zero))
-				{
-					image = DpiUtil.ScaleImage(mDatabase.GetCustomIcon(customIconId), false);
-				}
-				if (image == null)
-				{
-					try { image = mMainForm.ClientIcons.Images[(int)iconId]; }
-					catch (Exception) { Debug.Assert(false); }
-				}
+				image = DpiUtil.ScaleImage(database.GetCustomIcon(customIconId), false);
+			}
+			if (image == null)
+			{
+				try { image = mMainForm.ClientIcons.Images[(int)iconId]; }
+				catch (Exception) { Debug.Assert(false); }
 			}
 
 			return image;
@@ -498,6 +494,7 @@ namespace AutoTypeSearch
 			}
 		}
 
+		[SuppressMessage("ReSharper", "CoVariantArrayConversion", Justification = "Object arrays for Listbox.Items, known to be of correct type")]
 		private void mResultsUpdater_Tick(object sender, EventArgs e)
 		{
 			if (mLastResultsUpdated != mCurrentSearch)
@@ -663,10 +660,10 @@ namespace AutoTypeSearch
 					mResults.SelectedIndex = mResults.Items.Count - 1;
 					return true;
 				case Keys.Enter:
-					PerformAction(Settings.Default.DefaultAction, GetSelectedEntry());
+					PerformAction(Settings.Default.DefaultAction, mResults.SelectedItem as SearchResult);
 					break;
 				case Keys.Enter | Keys.Shift:
-					PerformAction(Settings.Default.AlternativeAction, GetSelectedEntry());
+					PerformAction(Settings.Default.AlternativeAction, mResults.SelectedItem as SearchResult);
 					break;
 			}
 			
@@ -696,27 +693,27 @@ namespace AutoTypeSearch
 				var clickedResult = mResults.Items[clickIndex] as SearchResult;
 				if (clickedResult != null)
 				{
-					PerformAction((ModifierKeys & Keys.Shift) == Keys.Shift ? Settings.Default.AlternativeAction : Settings.Default.DefaultAction, clickedResult.Entry);
+					PerformAction((ModifierKeys & Keys.Shift) == Keys.Shift ? Settings.Default.AlternativeAction : Settings.Default.DefaultAction, clickedResult);
 				}
 			}
 		}
 
-		private void PerformAction(Actions action, PwEntry entry)
+		private void PerformAction(Actions action, SearchResult searchResult)
 		{
 			Close();
 
-			if (entry != null)
+			if (searchResult != null)
 			{
 				switch (action)
 				{
 					case Actions.PerformAutoType:
-						AutoTypeEntry(entry);
+						AutoTypeEntry(searchResult);
 						break;
 					case Actions.EditEntry:
-						EditEntry(entry);
+						EditEntry(searchResult);
 						break;
 					case Actions.ShowEntry:
-						ShowEntry(entry);
+						ShowEntry(searchResult);
 						break;
 					default:
 						throw new ArgumentOutOfRangeException("action");
@@ -724,26 +721,16 @@ namespace AutoTypeSearch
 			}
 		}
 
-		private PwEntry GetSelectedEntry()
-		{
-			var selection = mResults.SelectedItem as SearchResult;
-			if (selection != null)
-			{
-				return selection.Entry;
-			}
-			return null;
-		}
-
-		private void AutoTypeEntry(PwEntry entry)
+		private void AutoTypeEntry(SearchResult searchResult)
 		{
 			bool result;
 			if (ActiveForm != null)
 			{
-				result = AutoType.PerformIntoPreviousWindow(mMainForm, entry, mDatabase);
+				result = AutoType.PerformIntoPreviousWindow(mMainForm, searchResult.Entry, searchResult.Database);
 			}
 			else
 			{
-				result = AutoType.PerformIntoCurrentWindow(entry, mDatabase);
+				result = AutoType.PerformIntoCurrentWindow(searchResult.Entry, searchResult.Database);
 			}
 			if (!result)
 			{
@@ -751,20 +738,22 @@ namespace AutoTypeSearch
 
 				if (Settings.Default.AlternativeAction != Actions.PerformAutoType)
 				{
-					PerformAction(Settings.Default.AlternativeAction, entry);
+					PerformAction(Settings.Default.AlternativeAction, searchResult);
 				}
 			}
 		}
 
-		private void EditEntry(PwEntry entry)
+		private void EditEntry(SearchResult searchResult)
 		{
 			using (var entryForm = new PwEntryForm())
 			{
-				entryForm.InitEx(entry, PwEditMode.EditExistingEntry, mDatabase, mMainForm.ClientIcons, false, false);
+				mMainForm.MakeDocumentActive(mMainForm.DocumentManager.FindDocument(searchResult.Database));
+				
+				entryForm.InitEx(searchResult.Entry, PwEditMode.EditExistingEntry, searchResult.Database, mMainForm.ClientIcons, false, false);
 
 				ShowForegroundDialog(entryForm);
-				
-				mMainForm.UpdateUI(false, null, mDatabase.UINeedsIconUpdate, null, true, null, entryForm.HasModifiedEntry);
+
+				mMainForm.UpdateUI(false, null, searchResult.Database.UINeedsIconUpdate, null, true, null, entryForm.HasModifiedEntry);
 			}
 		}
 
@@ -789,12 +778,12 @@ namespace AutoTypeSearch
 			form.Activate();
 		}
 
-		private void ShowEntry(PwEntry entry)
+		private void ShowEntry(SearchResult searchResult)
 		{
 			// Show this entry
-			mMainForm.UpdateUI(false, null, true, entry.ParentGroup, true, null, false, null);
-			SelectEntries(new PwObjectList<PwEntry> { entry }, true, true);
-			mMainForm.EnsureVisibleEntry(entry.Uuid);
+			mMainForm.UpdateUI(false, mMainForm.DocumentManager.FindDocument(searchResult.Database), true, searchResult.Entry.ParentGroup, true, null, false, null);
+			SelectEntries(new PwObjectList<PwEntry> { searchResult.Entry }, true, true);
+			mMainForm.EnsureVisibleEntry(searchResult.Entry.Uuid);
 			mMainForm.UpdateUI(false, null, false, null, false, null, false);
 			mMainForm.EnsureVisibleForegroundWindow(true, true);
 		}

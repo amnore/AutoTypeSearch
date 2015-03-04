@@ -2,20 +2,19 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Windows.Forms.PropertyGridInternal;
-using KeePass.DataExchange.Formats;
+using AutoTypeSearch.Properties;
 using KeePassLib;
 
 namespace AutoTypeSearch
 {
 	internal class Searcher
 	{
-		private readonly PwDatabase mDatabase;
+		private readonly PwDatabase[] mDatabases;
 		private readonly Dictionary<string, SearchResults> mSearches = new Dictionary<string, SearchResults>();
 
-		public Searcher(PwDatabase database)
+		public Searcher(PwDatabase[] databases)
 		{
-			mDatabase = database;
+			mDatabases = databases;
 		}
 
 		public SearchResults Search(string term)
@@ -50,7 +49,7 @@ namespace AutoTypeSearch
 			if (parentResults == null)
 			{
 				// No parent found at all, start from scratch
-				searchResults = new SearchResults(mDatabase, (int)mDatabase.RootGroup.GetEntriesCount(true), term);
+				searchResults = new SearchResults(GetCountOfAllDatabaseEntries(), term);
 
 				var rootSearchThread = new Thread(RootSearchWorker) { Name = term };
 				rootSearchThread.Start(searchResults);
@@ -68,13 +67,21 @@ namespace AutoTypeSearch
 			return searchResults;
 		}
 
+		private int GetCountOfAllDatabaseEntries()
+		{
+			return (from database in mDatabases select (int)database.RootGroup.GetEntriesCount(true)).Sum();
+		}
+
 		private void RootSearchWorker(object stateObject)
 		{
 			var results = (SearchResults)stateObject;
-			var excludeExpired = Properties.Settings.Default.ExcludeExpired;
+			var excludeExpired = Settings.Default.ExcludeExpired;
 			var searchStartTime = DateTime.Now;
 
-			SearchGroup(mDatabase.RootGroup, results, excludeExpired, searchStartTime);
+			foreach (var database in mDatabases)
+			{
+				SearchGroup(database, database.RootGroup, results, excludeExpired, searchStartTime);	
+			}
 
 			results.SetComplete();
 		}
@@ -82,20 +89,20 @@ namespace AutoTypeSearch
 		/// <summary>
 		/// Recursively search <paramref name="group"/> and its children, adding results to <paramref name="results"/>
 		/// </summary>
-		private void SearchGroup(PwGroup group, SearchResults results, bool excludeExpired, DateTime searchStartTime)
+		private void SearchGroup(PwDatabase context, PwGroup group, SearchResults results, bool excludeExpired, DateTime searchStartTime)
 		{
 			if (group.EnableSearching ?? true) // Group will only be searched if it's parent enabled searching, so if it is inherit (null) or true, search it.
 			{
 				foreach (var childGroup in group.Groups)
 				{
-					SearchGroup(childGroup, results, excludeExpired, searchStartTime);
+					SearchGroup(context, childGroup, results, excludeExpired, searchStartTime);
 				}
 
 				foreach (var entry in group.Entries)
 				{
 					if (!(excludeExpired && entry.Expires && searchStartTime > entry.ExpiryTime))
 					{
-						results.AddResultIfMatchesTerm(entry);
+						results.AddResultIfMatchesTerm(context, entry);
 					}
 				}
 			}

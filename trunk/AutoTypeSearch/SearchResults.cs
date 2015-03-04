@@ -12,7 +12,6 @@ namespace AutoTypeSearch
 {
 	internal class SearchResults
 	{
-		private readonly PwDatabase mDatabase;
 		private readonly string mTerm;
 		private readonly SearchResult[] mResults;
 
@@ -31,10 +30,8 @@ namespace AutoTypeSearch
 		private readonly bool mResolveReferences;
 		private readonly bool mSearchTags;
 
-		public SearchResults(PwDatabase database, int capacity, string term)
+		public SearchResults(int capacity, string term)
 		{
-			mDatabase = database;
-
 			mTerm = term;
 			mResults = new SearchResult[capacity];
 
@@ -75,19 +72,19 @@ namespace AutoTypeSearch
 			return fieldsToSearch;
 		}
 
-		public void AddResultIfMatchesTerm(PwEntry entry)
+		public void AddResultIfMatchesTerm(PwDatabase context, PwEntry entry)
 		{
 			// First try without resolving
-			var addedResult = AddResultIfMatchesTerm(entry, false);
+			var addedResult = AddResultIfMatchesTerm(context, entry, false);
 
 			if (!addedResult && mResolveReferences)
 			{
 				// Not found without resolving, so try resolving
-				AddResultIfMatchesTerm(entry, true);
+				AddResultIfMatchesTerm(context, entry, true);
 			}
 		}
 
-		private bool AddResultIfMatchesTerm(PwEntry entry, bool resolveReferences)
+		private bool AddResultIfMatchesTerm(PwDatabase context, PwEntry entry, bool resolveReferences)
 		{
 			foreach (var fieldName in GetFieldsToSearch(entry))
 			{
@@ -102,7 +99,7 @@ namespace AutoTypeSearch
 
 					if (resolveReferences)
 					{
-						fieldValue = ResolveReferences(entry, fieldValue);
+						fieldValue = ResolveReferences(context, entry, fieldValue);
 					}
 				}
 
@@ -112,7 +109,7 @@ namespace AutoTypeSearch
 					if (foundIndex >= 0)
 					{
 						// Found a match, create a search result and add it
-						AddResult(new SearchResult(entry, entry.Strings.ReadSafe(PwDefs.TitleField), fieldName, fieldValue, foundIndex, mTerm.Length));
+						AddResult(new SearchResult(context, entry, entry.Strings.ReadSafe(PwDefs.TitleField), fieldName, fieldValue, foundIndex, mTerm.Length));
 						return true;
 					}
 				}
@@ -124,7 +121,7 @@ namespace AutoTypeSearch
 		/// Resolves any references in the field value and returns it. If there were no references,
 		/// returns null (to avoid duplicate searching - it is assumed that the unresolved value has already been searched)
 		/// </summary>
-		private string ResolveReferences(PwEntry entry, string fieldValue)
+		private string ResolveReferences(PwDatabase context, PwEntry entry, string fieldValue)
 		{
 			if (fieldValue.IndexOf('{') < 0)
 			{
@@ -132,7 +129,7 @@ namespace AutoTypeSearch
 				return null;
 			}
 			
-			var sprContext = new SprContext(entry, mDatabase, SprCompileFlags.Deref) { ForcePlainTextPasswords = false };
+			var sprContext = new SprContext(entry, context, SprCompileFlags.Deref) { ForcePlainTextPasswords = false };
 
 			var result = SprEngine.Compile(fieldValue, sprContext);
 			if (result.Equals(fieldValue, mStringComparison))
@@ -150,12 +147,12 @@ namespace AutoTypeSearch
 			if (fieldValue.Length > candidate.Start + mTerm.Length && fieldValue.Substring(candidate.Start, mTerm.Length).Equals(mTerm, mStringComparison))
 			{
 				// Yep, match continues, so add it.
-				AddResult(new SearchResult(candidate.Entry, candidate.Title, candidate.FieldName, fieldValue, candidate.Start, mTerm.Length));
+				AddResult(new SearchResult(candidate.Database, candidate.Entry, candidate.Title, candidate.FieldName, fieldValue, candidate.Start, mTerm.Length));
 			}
 			else
 			{
 				// Existing candidate match couldn't be extended, so search from scratch again
-				AddResultIfMatchesTerm(candidate.Entry);
+				AddResultIfMatchesTerm(candidate.Database, candidate.Entry);
 			}
 		}
 
@@ -276,7 +273,7 @@ namespace AutoTypeSearch
 			// If complete, then we know we don't need more than count. Otherwise, it can't be more than this capacity anyway
 			var childCapacity = complete ? count : mResults.Length;
 
-			return new SearchResults(mDatabase, childCapacity, term);
+			return new SearchResults(childCapacity, term);
 		}
 	}
 }

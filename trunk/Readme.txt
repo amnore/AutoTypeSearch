@@ -64,6 +64,9 @@ v0.2
 v0.3
  Added search result prioritisation for entries where the match is found at the start of the field
 
+v0.4
+ Added support for multiple databases. All currently open, unlocked, databases will be searched
+
 
 Attributions
 ------------
