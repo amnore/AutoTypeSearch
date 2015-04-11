@@ -194,7 +194,7 @@ namespace AutoTypeSearch
 
 			var image = GetImage(searchResult.Database, searchResult.Entry.CustomIconUuid, searchResult.Entry.IconId);
 			var imageMargin = (drawingArea.Height - image.Height) / 2;
-			e.Graphics.DrawImageUnscaled(image, drawingArea.Left + imageMargin, drawingArea.Top + imageMargin);
+			e.Graphics.DrawImage(image, drawingArea.Left + imageMargin, drawingArea.Top + imageMargin, image.Width, image.Height);
 
 			var textLeftMargin = drawingArea.Left + imageMargin * 2 + image.Width;
 			var textBounds = new Rectangle(textLeftMargin, drawingArea.Top + 1, drawingArea.Width - textLeftMargin - 1, drawingArea.Height - 2);
@@ -345,7 +345,7 @@ namespace AutoTypeSearch
 			Image image = null;
 			if (!customIconId.Equals(PwUuid.Zero))
 			{
-				image = DpiUtil.ScaleImage(database.GetCustomIcon(customIconId), false);
+				image = GetCustomIcon(database, customIconId);
 			}
 			if (image == null)
 			{
@@ -355,6 +355,28 @@ namespace AutoTypeSearch
 
 			return image;
 		}
+
+		#region IconHelper
+		private static Func<PwDatabase, PwUuid, Image> sGetCustomIconInternal;
+		private static Image GetCustomIcon(PwDatabase database, PwUuid customIconId)
+		{
+			if (sGetCustomIconInternal == null)
+			{
+				// Attempt to use the new (2.29 and above) methods to get a natively larger icon, rather than rescaling
+				var getCustomIconMethod = database.GetType().GetMethod("GetCustomIcon", new[] { typeof(PwUuid), typeof(int), typeof(int) });
+				if (getCustomIconMethod != null)
+				{
+					sGetCustomIconInternal = (db, id) => getCustomIconMethod.Invoke(db, new object[] { id, DpiUtil.ScaleIntX(16), DpiUtil.ScaleIntY(16) }) as Image;
+				}
+				else
+				{
+					// Pre- 2.29 method
+					sGetCustomIconInternal = (db, id) => DpiUtil.ScaleImage(db.GetCustomIcon(id), false);
+				}
+			}
+			return sGetCustomIconInternal(database, customIconId);
+		}
+		#endregion
 
 		private static string GetDisplayFieldName(string fieldName)
 		{
