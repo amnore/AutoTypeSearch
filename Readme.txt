@@ -67,6 +67,8 @@ v0.3
 v0.4
  Added support for multiple databases. All currently open, unlocked, databases will be searched
 
+v0.5
+ Added support for KeePass 2.29 high resolution custom icons
 
 Attributions
 ------------
