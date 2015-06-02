@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Media;
 using System.Reflection;
+using System.Text;
 using System.Windows.Forms;
 using AutoTypeSearch.Properties;
 using KeePass.Forms;
@@ -205,23 +206,50 @@ namespace AutoTypeSearch
 			line2Bounds.Y += line2Bounds.Height - 1;
 			line2Bounds.X += SecondLineInset;
 			line2Bounds.Width -= SecondLineInset;
-			
-			if (searchResult.FieldName == PwDefs.TitleField)
-			{
-				var title = searchResult.FieldValue;
 
-				// Found the result in the title field. Highlight title in first line, use Username for second line.
-				DrawHighlight(e, line1Bounds, title, searchResult.Start, searchResult.Length);
-				TextRenderer.DrawText(e.Graphics, title, e.Font, line1Bounds, SystemColors.WindowText, TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+			var resultInTitleField = searchResult.FieldName == PwDefs.TitleField;
+
+			var title = (resultInTitleField ? searchResult.FieldValue : searchResult.Title).Replace('\n', ' '); // The FieldValue may have references resolved, whereas the title is always read directly.
+
+			var uniqueTitlePartWidth = 0;
+			if (!String.IsNullOrEmpty(searchResult.UniqueTitlePart))
+			{
+				var uniqueTitlePart = searchResult.UniqueTitlePart.Replace('\n', ' ');
+
+				var titleWidth = TextRenderer.MeasureText(e.Graphics, title, e.Font, line1Bounds.Size, TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis).Width;
+
+				var availableWidthForUniqueTitlePart = line1Bounds.Width - titleWidth;
+				if (availableWidthForUniqueTitlePart > 20) // Don't bother including a unique part if there's no room for it
+				{
+					var uniqueTitlePartReversed = ReverseString(uniqueTitlePart);
+
+					uniqueTitlePartWidth = TextRenderer.MeasureText(e.Graphics, uniqueTitlePartReversed, e.Font, new Size(availableWidthForUniqueTitlePart, line1Bounds.Height), TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis | TextFormatFlags.ModifyString).Width;
+
+					uniqueTitlePart = ReverseString(uniqueTitlePartReversed);
+
+					TextRenderer.DrawText(e.Graphics, uniqueTitlePart, e.Font, new Rectangle(line1Bounds.X, line1Bounds.Y, uniqueTitlePartWidth, line1Bounds.Height), SystemColors.GrayText, TextFormatFlags.NoPadding);
+				}
+			}
+
+			var titleBounds = new Rectangle(line1Bounds.X + uniqueTitlePartWidth, line1Bounds.Y, line1Bounds.Width - uniqueTitlePartWidth, line1Bounds.Height);
+
+			if (resultInTitleField)
+			{
+				// Found the result in the title field. Highlight title in first line.
+				DrawHighlight(e, titleBounds, title, searchResult.Start, searchResult.Length);
+			}
+
+			TextRenderer.DrawText(e.Graphics, searchResult.Title, e.Font, titleBounds, SystemColors.WindowText, TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+
+			if (resultInTitleField)
+			{
+				// Found the result in the title field. Use Username for second line.
 				TextRenderer.DrawText(e.Graphics, KPRes.UserName + ": " + searchResult.Entry.Strings.ReadSafeEx(PwDefs.UserNameField), e.Font, line2Bounds, SystemColors.GrayText, TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
 			}
 			else
 			{
-				var title = searchResult.Title;
-
-				// Found the result in not title field. Use title on first line, and show the matching result on second line
-				TextRenderer.DrawText(e.Graphics, title, e.Font, line1Bounds, SystemColors.WindowText, TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
-
+				// Found the result in not title field. Show the matching result on second line
+				
 				var fieldValue = searchResult.FieldValue.Replace('\n',' ');
 				var fieldNamePrefix = GetDisplayFieldName(searchResult.FieldName) + ": ";
 
@@ -251,7 +279,7 @@ namespace AutoTypeSearch
 					// Of the space remaining, divide it equally between that which comes before, and that which comes after
 					if (!String.IsNullOrEmpty(leftContext))
 					{
-						var leftContextReversed = new String(leftContext.ToCharArray().Reverse().ToArray());
+						var leftContextReversed = ReverseString(leftContext);
 						fieldValueLeftContextWidth = TextRenderer.MeasureText(e.Graphics, leftContextReversed, e.Font, new Size(remainingSpace / 2, line2Bounds.Height), TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis | TextFormatFlags.ModifyString).Width;
 
 						if (fieldValueLeftContextWidth > remainingSpace)
@@ -266,7 +294,7 @@ namespace AutoTypeSearch
 						}
 						
 						// Replace left context with the truncated reversed left context.
-						leftContext = new String(leftContextReversed.ToCharArray().TakeWhile(c => c != '\0').Reverse().ToArray());
+						leftContext = ReverseString(leftContextReversed);
 					}
 
 					if (remainingSpace > 0 && !String.IsNullOrEmpty(rightContext))
@@ -309,6 +337,11 @@ namespace AutoTypeSearch
 			}
 
 			e.Graphics.DrawLine(SystemPens.ButtonFace, drawingArea.Left, drawingArea.Bottom, drawingArea.Right, drawingArea.Bottom);
+		}
+
+		private static string ReverseString(string value)
+		{
+			return new String(value.ToCharArray().TakeWhile(c => c != '\0').Reverse().ToArray());
 		}
 
 		private static void DrawHighlight(DrawItemEventArgs e, Rectangle lineBounds, string text, int highlightFrom, int highlightLength)
@@ -548,6 +581,8 @@ namespace AutoTypeSearch
 					allResults = newResults;
 				}
 
+				CalculateUniqueTitles(allResults);
+
 				Array.Sort(allResults, SearchResultPrecedenceComparer);
 				mResults.Items.AddRange(allResults);
 				
@@ -585,6 +620,46 @@ namespace AutoTypeSearch
 					mNoResultsLabel.Visible = true;
 					Height = MinimumSize.Height + mResults.ItemHeight;
 					mManualSizeApplied = false;
+				}
+			}
+		}
+
+		private void CalculateUniqueTitles(IEnumerable<SearchResult> results, int depth = 0)
+		{
+			// Where results have identical titles, include group titles to make them unique
+			depth += 1;
+
+			// First create a lookup by title
+			var titles = new Dictionary<string, List<SearchResult>>();
+			foreach (var searchResult in results)
+			{
+				List<SearchResult> resultsWithSameTitle;
+				if (titles.TryGetValue(searchResult.UniqueTitle, out resultsWithSameTitle))
+				{
+					resultsWithSameTitle.Add(searchResult);
+				}
+				else
+				{
+					titles.Add(searchResult.UniqueTitle, new List<SearchResult> { searchResult });
+				}
+			}
+
+			// Attempt to unique-ify any non-unique titles
+			foreach (var resultsSharingTitle in titles.Values)
+			{
+				if (resultsSharingTitle.Count > 1)
+				{
+					var titlesModified = false;
+					foreach (var searchResult in resultsSharingTitle)
+					{
+						titlesModified |= searchResult.SetUniqueTitleDepth(depth);
+					}
+
+					if (titlesModified)
+					{
+						// Recurse in case of continuing non-uniqueness
+						CalculateUniqueTitles(resultsSharingTitle, depth);
+					}
 				}
 			}
 		}
