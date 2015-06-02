@@ -70,6 +70,9 @@ v0.4
 v0.5
  Added support for KeePass 2.29 high resolution custom icons
 
+v0.6
+ Where title does not uniquely identify the results shown, now also shows the group name as context
+
 Attributions
 ------------
 Throbber image by FlipDarius http://www.mediawiki.org/wiki/File:Loading.gif

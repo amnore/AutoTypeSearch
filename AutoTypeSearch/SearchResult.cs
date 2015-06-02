@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using KeePassLib;
 
 namespace AutoTypeSearch
@@ -14,6 +15,7 @@ namespace AutoTypeSearch
 		private readonly int mLength;
 		private readonly string mFieldValue;
 		private readonly string mTitle;
+		private string mUniqueTitlePart;
 		private int mResultIndex = -1;
 
 		public SearchResult(PwDatabase database, PwEntry entry, string title, string fieldName, string fieldValue, int start, int length)
@@ -66,6 +68,19 @@ namespace AutoTypeSearch
 			get { return mTitle; }
 		}
 
+		/// <summary>
+		/// The UniqueTitle may be modified from the <seealso cref="Title"/> to ensure uniqueness in the list of results
+		/// </summary>
+		public string UniqueTitle
+		{
+			get { return UniqueTitlePart + Title; }
+		}
+
+		public string UniqueTitlePart
+		{
+			get { return mUniqueTitlePart; }
+		}
+
 		public int ResultIndex
 		{
 			get { return mResultIndex; }
@@ -84,5 +99,26 @@ namespace AutoTypeSearch
 
 			mResultIndex = resultIndex;
 		}
+
+		/// <summary>
+		/// Sets <see cref="UniqueTitle"/> by including parent group names to the specified depth.
+		/// </summary>
+		/// <returns>True if the group hierarchy is deep enough to support full requested <paramref name="depth"/></returns>
+		public bool SetUniqueTitleDepth(int depth)
+		{
+			var groupPath = new StringBuilder();
+			var group = Entry.ParentGroup;
+			for (int i = 0; i < depth && group != null; i++)
+			{
+				groupPath.Insert(0, group.Name + " / ");
+				group = group.ParentGroup;
+			}
+
+			mUniqueTitlePart = groupPath.ToString();
+
+			return group != null;
+		}
+
+		
 	}
 }
