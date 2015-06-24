@@ -812,6 +812,9 @@ namespace AutoTypeSearch
 					case Actions.ShowEntry:
 						ShowEntry(searchResult);
 						break;
+					case Actions.OpenEntryUrl:
+						OpenEntryUrl(searchResult);
+						break;
 					default:
 						throw new ArgumentOutOfRangeException("action");
 				}
@@ -883,6 +886,11 @@ namespace AutoTypeSearch
 			mMainForm.EnsureVisibleEntry(searchResult.Entry.Uuid);
 			mMainForm.UpdateUI(false, null, false, null, false, null, false);
 			mMainForm.EnsureVisibleForegroundWindow(true, true);
+		}
+
+		private void OpenEntryUrl(SearchResult searchResult)
+		{
+			WinUtil.OpenEntryUrl(searchResult.Entry);
 		}
 
 		/// <summary>

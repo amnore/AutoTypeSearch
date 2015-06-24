@@ -8,5 +8,6 @@ namespace AutoTypeSearch
 		PerformAutoType,
 		EditEntry,
 		ShowEntry,
+		OpenEntryUrl,
 	}
 }
