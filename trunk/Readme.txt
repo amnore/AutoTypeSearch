@@ -73,6 +73,9 @@ v0.5
 v0.6
  Where title does not uniquely identify the results shown, now also shows the group name as context
 
+v0.7
+ Added support for the "Open entry URL" action. Use the Options window to choose this, if required.
+
 Attributions
 ------------
 Throbber image by FlipDarius http://www.mediawiki.org/wiki/File:Loading.gif
