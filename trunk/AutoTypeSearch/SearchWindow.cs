@@ -815,6 +815,9 @@ namespace AutoTypeSearch
 					case Actions.OpenEntryUrl:
 						OpenEntryUrl(searchResult);
 						break;
+					case Actions.CopyPassword:
+						CopyPassword(searchResult);
+						break;
 					default:
 						throw new ArgumentOutOfRangeException("action");
 				}
@@ -891,6 +894,16 @@ namespace AutoTypeSearch
 		private void OpenEntryUrl(SearchResult searchResult)
 		{
 			WinUtil.OpenEntryUrl(searchResult.Entry);
+		}
+
+		private void CopyPassword(SearchResult searchResult)
+		{
+			if (ClipboardUtil.Copy(searchResult.Entry.Strings.ReadSafe(PwDefs.PasswordField), true, true, searchResult.Entry,
+									mMainForm.DocumentManager.SafeFindContainerOf(searchResult.Entry),
+									IntPtr.Zero))
+			{
+				mMainForm.StartClipboardCountdown();
+			}
 		}
 
 		/// <summary>
