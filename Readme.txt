@@ -76,6 +76,9 @@ v0.6
 v0.7
  Added support for the "Open entry URL" action. Use the Options window to choose this, if required.
 
+v0.8
+ Added support for the "Copy password" action. Use the Options window to choose this, if required.
+
 Attributions
 ------------
 Throbber image by FlipDarius http://www.mediawiki.org/wiki/File:Loading.gif

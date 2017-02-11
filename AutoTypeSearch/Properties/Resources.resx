@@ -126,6 +126,9 @@
   <data name="BannerText" xml:space="preserve">
     <value>Start typing to search entries</value>
   </data>
+  <data name="CopyPassword" xml:space="preserve">
+    <value>Copy password</value>
+  </data>
   <data name="EditEntry" xml:space="preserve">
     <value>Edit entry</value>
   </data>

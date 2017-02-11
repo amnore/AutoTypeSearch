@@ -26,7 +26,7 @@ namespace AutoTypeSearch
 			InitializeComponent();
 
 			// Must mach order and values of Actions enum
-			var actions = new object[] { Resources.PerformAutoType, Resources.EditEntry, Resources.ShowEntry, Resources.OpenEntryUrl };
+			var actions = new object[] { Resources.PerformAutoType, Resources.EditEntry, Resources.ShowEntry, Resources.OpenEntryUrl, Resources.CopyPassword };
 			mDefaultAction.Items.AddRange(actions);
 			mAlternativeAction.Items.AddRange(actions);
 
