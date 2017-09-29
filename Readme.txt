@@ -79,6 +79,10 @@ v0.7
 v0.8
  Added support for the "Copy password" action. Use the Options window to choose this, if required.
 
+v0.9
+ Added workaround for mono bug under Linux that could cause an ArgumentOutOfRange crash when 
+  searching if only a single result is initially returned.
+
 Attributions
 ------------
 Throbber image by FlipDarius http://www.mediawiki.org/wiki/File:Loading.gif
