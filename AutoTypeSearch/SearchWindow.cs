@@ -598,7 +598,10 @@ namespace AutoTypeSearch
 						try
 						{
 							// HACK to work around mono bug
-							sMonoListBoxTopIndex?.SetValue(mResults, 1); // Set the top_index to 1 so that when selected index is set to 0, and calls EnsureVisible(0), it follows the index < top_index pass and not the broken index >= top_index + rows path. 
+							if (sMonoListBoxTopIndex != null)
+							{
+								sMonoListBoxTopIndex.SetValue(mResults, 1); // Set the top_index to 1 so that when selected index is set to 0, and calls EnsureVisible(0), it follows the index < top_index pass and not the broken index >= top_index + rows path. 
+							}
 
 							mResults.SelectedIndex = 0;
 							mResults.TopIndex = 0;
