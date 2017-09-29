@@ -24,6 +24,9 @@ namespace AutoTypeSearch
 	{
 		private const int SecondLineInset = 10;
 
+		// HACK to work around mono bug
+		private static readonly FieldInfo sMonoListBoxTopIndex = typeof(ListBox).GetField("top_index", BindingFlags.Instance | BindingFlags.NonPublic);
+
 		private readonly MainForm mMainForm;
 		private readonly MethodInfo mSelectEntriesMethod;
 		private readonly Bitmap mBannerImage;
@@ -594,6 +597,9 @@ namespace AutoTypeSearch
 					{
 						try
 						{
+							// HACK to work around mono bug
+							sMonoListBoxTopIndex?.SetValue(mResults, 1); // Set the top_index to 1 so that when selected index is set to 0, and calls EnsureVisible(0), it follows the index < top_index pass and not the broken index >= top_index + rows path. 
+
 							mResults.SelectedIndex = 0;
 							mResults.TopIndex = 0;
 						}
