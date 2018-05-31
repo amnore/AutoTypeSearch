@@ -1,5 +1,5 @@
 @echo off
-set version=0.9
+set version=0.9.1
 set output=%~dp0v%version%\
 set zipfile="%output%AutoTypeSearch-v%version%.zip"
 set buildoutputs="%~dp0Build Outputs"

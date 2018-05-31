@@ -83,6 +83,9 @@ v0.9
  Added workaround for mono bug under Linux that could cause an ArgumentOutOfRange crash when 
   searching if only a single result is initially returned.
 
+v0.91
+ Fixed bug where up or down keys would cause an exception if there are no results to scroll through
+
 Attributions
 ------------
 Throbber image by FlipDarius http://www.mediawiki.org/wiki/File:Loading.gif

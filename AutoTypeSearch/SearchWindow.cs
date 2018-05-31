@@ -785,7 +785,10 @@ namespace AutoTypeSearch
 
 		private void TryChangeSelection(int delta)
 		{
-			mResults.SelectedIndex = Math.Max(Math.Min(mResults.Items.Count - 1, mResults.SelectedIndex + delta), 0);
+			if (mResults.Items.Count > 0)
+			{
+				mResults.SelectedIndex = Math.Max(Math.Min(mResults.Items.Count - 1, mResults.SelectedIndex + delta), 0);
+			}
 		}
 		#endregion
 
