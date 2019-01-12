@@ -28,7 +28,6 @@ namespace AutoTypeSearch
 		private static readonly FieldInfo sMonoListBoxTopIndex = typeof(ListBox).GetField("top_index", BindingFlags.Instance | BindingFlags.NonPublic);
 
 		private readonly MainForm mMainForm;
-		private readonly MethodInfo mSelectEntriesMethod;
 		private readonly Bitmap mBannerImage;
 		private readonly Searcher mSearcher;
 
@@ -79,9 +78,6 @@ namespace AutoTypeSearch
 				mInfoBanner.Height = 0;
 			}
 			
-			var mainWindowType = mMainForm.GetType();
-			mSelectEntriesMethod = mainWindowType.GetMethod("SelectEntries", BindingFlags.Instance | BindingFlags.NonPublic);
-
 			mSearcher = new Searcher(mMainForm.DocumentManager.GetOpenDatabases().ToArray());
 
 			Icon = mMainForm.Icon;
@@ -381,7 +377,7 @@ namespace AutoTypeSearch
 			Image image = null;
 			if (!customIconId.Equals(PwUuid.Zero))
 			{
-				image = GetCustomIcon(database, customIconId);
+				image = database.GetCustomIcon(customIconId, DpiUtil.ScaleIntX(16), DpiUtil.ScaleIntY(16));
 			}
 			if (image == null)
 			{
@@ -391,28 +387,6 @@ namespace AutoTypeSearch
 
 			return image;
 		}
-
-		#region IconHelper
-		private static Func<PwDatabase, PwUuid, Image> sGetCustomIconInternal;
-		private static Image GetCustomIcon(PwDatabase database, PwUuid customIconId)
-		{
-			if (sGetCustomIconInternal == null)
-			{
-				// Attempt to use the new (2.29 and above) methods to get a natively larger icon, rather than rescaling
-				var getCustomIconMethod = database.GetType().GetMethod("GetCustomIcon", new[] { typeof(PwUuid), typeof(int), typeof(int) });
-				if (getCustomIconMethod != null)
-				{
-					sGetCustomIconInternal = (db, id) => getCustomIconMethod.Invoke(db, new object[] { id, DpiUtil.ScaleIntX(16), DpiUtil.ScaleIntY(16) }) as Image;
-				}
-				else
-				{
-					// Pre- 2.29 method
-					sGetCustomIconInternal = (db, id) => DpiUtil.ScaleImage(db.GetCustomIcon(id), false);
-				}
-			}
-			return sGetCustomIconInternal(database, customIconId);
-		}
-		#endregion
 
 		private static string GetDisplayFieldName(string fieldName)
 		{
@@ -897,7 +871,7 @@ namespace AutoTypeSearch
 		{
 			// Show this entry
 			mMainForm.UpdateUI(false, mMainForm.DocumentManager.FindDocument(searchResult.Database), true, searchResult.Entry.ParentGroup, true, null, false, null);
-			SelectEntries(new PwObjectList<PwEntry> { searchResult.Entry }, true, true);
+			mMainForm.SelectEntries(new PwObjectList<PwEntry> { searchResult.Entry }, true, true);
 			mMainForm.EnsureVisibleEntry(searchResult.Entry.Uuid);
 			mMainForm.UpdateUI(false, null, false, null, false, null, false);
 			mMainForm.EnsureVisibleForegroundWindow(true, true);
@@ -917,21 +891,7 @@ namespace AutoTypeSearch
 				mMainForm.StartClipboardCountdown();
 			}
 		}
-
-		/// <summary>
-		/// Perform MainWindow.SelectEntries (through reflection)
-		/// </summary>
-		private void SelectEntries(PwObjectList<PwEntry> lEntries, bool bDeselectOthers, bool bFocusFirst)
-		{
-			if (mSelectEntriesMethod != null)
-			{
-				mSelectEntriesMethod.Invoke(mMainForm, new object[] { lEntries, bDeselectOthers, bFocusFirst });
-			}
-			else
-			{
-				Debug.Fail("Could not select the auto-typed entry, method not found");
-			}
-		}
+		
 		#endregion
 	}
 }

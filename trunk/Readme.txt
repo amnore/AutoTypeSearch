@@ -86,6 +86,9 @@ v0.9
 v0.91
  Fixed bug where up or down keys would cause an exception if there are no results to scroll through
 
+v0.10
+ Compatibility with KeePass 2.41 (No longer compatible with previous versions)
+
 Attributions
 ------------
 Throbber image by FlipDarius http://www.mediawiki.org/wiki/File:Loading.gif
