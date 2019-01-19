@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using AutoTypeSearch.Properties;
@@ -21,7 +22,7 @@ namespace AutoTypeSearch
 
 		private readonly AutoResetEvent mResultsUpdated = new AutoResetEvent(false);
 
-		private readonly StringComparison mStringComparison;
+		private readonly CompareOptions mStringComparison;
 		private readonly bool mSearchTitle;
 		private readonly bool mSearchUserName;
 		private readonly bool mSearchUrl;
@@ -35,7 +36,8 @@ namespace AutoTypeSearch
 			mTerm = term;
 			mResults = new SearchResult[capacity];
 
-			mStringComparison = Settings.Default.CaseSensitive ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase;
+			mStringComparison = Settings.Default.CaseSensitive ? CompareOptions.None : CompareOptions.IgnoreCase;
+			mStringComparison |= CompareOptions.IgnoreKanaType | CompareOptions.IgnoreWidth | CompareOptions.IgnoreNonSpace;
 			mSearchTitle = Settings.Default.SearchTitle;
 			mSearchUserName = Settings.Default.SearchUserName;
 			mSearchUrl = Settings.Default.SearchUrl;
@@ -105,7 +107,7 @@ namespace AutoTypeSearch
 
 				if (!String.IsNullOrEmpty(fieldValue))
 				{
-					var foundIndex = fieldValue.IndexOf(mTerm, mStringComparison);
+					var foundIndex = CultureInfo.CurrentCulture.CompareInfo.IndexOf(fieldValue, mTerm, mStringComparison);
 					if (foundIndex >= 0)
 					{
 						// Found a match, create a search result and add it
@@ -132,7 +134,7 @@ namespace AutoTypeSearch
 			var sprContext = new SprContext(entry, context, SprCompileFlags.Deref) { ForcePlainTextPasswords = false };
 
 			var result = SprEngine.Compile(fieldValue, sprContext);
-			if (result.Equals(fieldValue, mStringComparison))
+			if (CultureInfo.CurrentCulture.CompareInfo.Compare(result,fieldValue, mStringComparison) == 0)
 			{
 				return null;
 			}
@@ -144,7 +146,7 @@ namespace AutoTypeSearch
 		{
 			// First see whether the existing candidate is a further match in the same place
 			var fieldValue = candidate.FieldValue;
-			if (fieldValue.Length > candidate.Start + mTerm.Length && fieldValue.Substring(candidate.Start, mTerm.Length).Equals(mTerm, mStringComparison))
+			if (fieldValue.Length > candidate.Start + mTerm.Length && CultureInfo.CurrentCulture.CompareInfo.Compare(fieldValue.Substring(candidate.Start, mTerm.Length), mTerm, mStringComparison) == 0)
 			{
 				// Yep, match continues, so add it.
 				AddResult(new SearchResult(candidate.Database, candidate.Entry, candidate.Title, candidate.FieldName, fieldValue, candidate.Start, mTerm.Length));

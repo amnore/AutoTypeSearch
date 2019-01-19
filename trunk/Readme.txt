@@ -89,6 +89,9 @@ v0.91
 v0.10
  Compatibility with KeePass 2.41 (No longer compatible with previous versions)
 
+v0.11
+ Diacritic (accent) insensitive searching
+
 Attributions
 ------------
 Throbber image by FlipDarius http://www.mediawiki.org/wiki/File:Loading.gif
