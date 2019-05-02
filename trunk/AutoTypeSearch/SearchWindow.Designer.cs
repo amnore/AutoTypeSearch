@@ -40,9 +40,9 @@ namespace AutoTypeSearch
 			this.mSearch.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
 			this.mSearch.Location = new System.Drawing.Point(1, 78);
-			this.mSearch.Margin = new System.Windows.Forms.Padding(1, 0, 0, 0);
+			this.mSearch.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
 			this.mSearch.Name = "mSearch";
-			this.mSearch.Size = new System.Drawing.Size(522, 20);
+			this.mSearch.Size = new System.Drawing.Size(521, 20);
 			this.mSearch.TabIndex = 0;
 			this.mSearch.LocationChanged += new System.EventHandler(this.mSearch_LocationChanged);
 			this.mSearch.TextChanged += new System.EventHandler(this.mSearch_TextChanged);
@@ -169,7 +169,6 @@ namespace AutoTypeSearch
 			this.Controls.Add(this.mNoResultsLabel);
 			this.Controls.Add(this.mThrobber);
 			this.Controls.Add(this.mLayout);
-			this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;
 			this.MinimumSize = new System.Drawing.Size(160, 96);
 			this.Name = "SearchWindow";
 			this.ShowInTaskbar = false;
