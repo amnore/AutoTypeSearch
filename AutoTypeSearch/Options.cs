@@ -1,5 +1,4 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
@@ -7,7 +6,6 @@ using System.Windows.Forms;
 using AutoTypeSearch.Properties;
 using KeePass.Forms;
 using KeePass.Plugins;
-using KeePass.UI;
 using KeePassLib;
 using KeePassLib.Native;
 
@@ -17,7 +15,6 @@ namespace AutoTypeSearch
 	{
 		private const string OptionsConfigRoot = "AutoTypeSearchExt.";
 
-		private readonly HotKeyControlEx mShowHotKeyControl;
 		private static int sRegisteredHotkeyId;
 
 		// ReSharper disable once MemberCanBePrivate.Global - Public for forms designer
@@ -30,8 +27,6 @@ namespace AutoTypeSearch
 			mDefaultAction.Items.AddRange(actions);
 			mAlternativeAction.Items.AddRange(actions);
 
-			mShowHotKeyControl = HotKeyControlEx.ReplaceTextBox(mShowSearchGroup, mShowHotKeyTextBox, false);
-
 			// Read options
 			mShowOnFailedSearch.Checked = Settings.Default.ShowOnFailedAutoType;
 			
@@ -41,7 +36,6 @@ namespace AutoTypeSearch
 				mShowOnHotKey.Checked = false;
 
 				mShowHotKeyControl.Clear();
-				mShowHotKeyControl.RenderHotKey();
 			}
 			else
 			{
@@ -68,25 +62,13 @@ namespace AutoTypeSearch
 
 		private Keys ShowHotKey
 		{
-			get { return mShowHotKeyControl.HotKey | mShowHotKeyControl.HotKeyModifiers; }
-			set
-			{
-				mShowHotKeyControl.HotKey = value & Keys.KeyCode;
-				mShowHotKeyControl.HotKeyModifiers = value & Keys.Modifiers;
-
-				mShowHotKeyControl.RenderHotKey();
-			}
+			get { return mShowHotKeyControl.HotKey; }
+			set { mShowHotKeyControl.HotKey = value; }
 		}
 
 		private void mShowOnHotKey_CheckedChanged(object sender, EventArgs e)
 		{
 			mShowHotKeyControl.Enabled = mShowOnHotKey.Checked;
-		}
-
-		protected override void OnValidating(CancelEventArgs e)
-		{
-			mShowHotKeyControl.ResetIfModifierOnly();
-			base.OnValidating(e);
 		}
 
 		private void ApplySettings()

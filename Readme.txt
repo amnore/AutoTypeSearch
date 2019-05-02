@@ -19,7 +19,7 @@ Usage
 AutoTypeSearch is initially configured to automatically appear after an unsuccessful global
 auto-type. However, this can be changed in the KeePass Options window (an AutoTypeShow tab has
 been added). Here, a system-wide hot key can be configured to show the AutoTypeSearch window
-immediately. It is also possible to show the window by running KeePass.exe passing "/e:AutoTypeSearch"
+immediately. It is also possible to show the window by running KeePass.exe passing "/e1:AutoTypeSearch"
 as a command line parameter.
 
 Once the window is shown, usage is extremely simple. Just start typing, and AutoTypeSearch will
@@ -91,6 +91,12 @@ v0.10
 
 v0.11
  Diacritic (accent) insensitive searching
+
+v0.12
+ Removed ugly white top border under Windows 10
+
+v1.0
+ Compatibility with KeePass 2.42. For versions of KeePass prior to 2.42, use an 0.X version.
 
 Attributions
 ------------

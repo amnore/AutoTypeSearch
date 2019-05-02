@@ -168,11 +168,16 @@ namespace AutoTypeSearch
 		{
 			if (Settings.Default.ShowOnIPC && ipcEventArgs.Name.Equals(IpcEventName, StringComparison.InvariantCultureIgnoreCase))
 			{
-				ShowSearch();
+				mHost.MainWindow.BeginInvoke(new Action(ShowSearch));
 			}
 		}
 
-		private void ShowSearch(string infoText = null)
+		private void ShowSearch()
+		{
+			ShowSearch(null);
+		}
+
+		private void ShowSearch(string infoText)
 		{
 			// Unlock, if required
 			mHost.MainWindow.ProcessAppMessage((IntPtr)Program.AppMessage.Unlock, IntPtr.Zero);

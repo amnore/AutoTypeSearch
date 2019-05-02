@@ -33,6 +33,7 @@ namespace AutoTypeSearch
 
 		private readonly Stream mThrobberImageStream;
 
+		private int? mWindowTopBorderHeight;
 		private int mBannerWidth = -1;
 		private int mMaximumExpandHeight;
 		private bool mManualSizeApplied;
@@ -97,9 +98,19 @@ namespace AutoTypeSearch
 		{
 			base.OnCreateControl();
 
+			if (NativeMethods.IsWindows10())
+			{
+				mWindowTopBorderHeight = PointToScreen(Point.Empty).Y - this.Top;
+				NativeMethods.RefreshWindowFrame(Handle);
+			}
+
 			var windowRect = Settings.Default.WindowPosition;
 			var collapsedWindowRect = windowRect;
+			
 			collapsedWindowRect.Height = mSearch.Bottom + (Height - ClientSize.Height);
+
+			MinimumSize = new Size(MinimumSize.Width, collapsedWindowRect.Height);
+
 			if (windowRect.IsEmpty || !IsOnScreen(collapsedWindowRect))
 			{
 				windowRect = new Rectangle(0, 0, Width, Height);
@@ -113,9 +124,9 @@ namespace AutoTypeSearch
 				Size = collapsedWindowRect.Size;
 			}
 
-			MinimumSize = new Size(MinimumSize.Width, collapsedWindowRect.Height);
 			mMaximumExpandHeight = Math.Max(windowRect.Height, MinimumSize.Height + mResults.ItemHeight);
 		}
+		
 
 		private static bool IsOnScreen(Rectangle rectangle)
 		{
@@ -126,6 +137,16 @@ namespace AutoTypeSearch
 		{
 			mResults.ItemHeight = mResults.Font.Height * 2 + 2;
 		}
+
+		protected override void WndProc(ref Message m)
+		{
+			if (mWindowTopBorderHeight.HasValue)
+			{
+				NativeMethods.RemoveWindowFrameTopBorder(ref m, mWindowTopBorderHeight.Value);
+			}
+			base.WndProc(ref m);
+		}
+
 		#endregion
 
 		#region Closing
@@ -476,7 +497,14 @@ namespace AutoTypeSearch
 		{
 			base.OnResizeEnd(e);
 
-			mMaximumExpandHeight = Math.Max(Height, MinimumSize.Height + mResults.ItemHeight);
+			if (Height > MinimumSize.Height && Height != mMaximumExpandHeight)
+			{
+				mMaximumExpandHeight = Math.Max(Height, MinimumSize.Height + mResults.ItemHeight);
+			}
+			else
+			{
+				mManualSizeApplied = false;
+			}
 
 			Settings.Default.WindowPosition = new Rectangle(Left, Top, Width, mMaximumExpandHeight);
 		}

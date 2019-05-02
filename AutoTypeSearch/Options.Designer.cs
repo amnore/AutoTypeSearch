@@ -1,4 +1,6 @@
-﻿namespace AutoTypeSearch
+﻿using KeePass.UI;
+
+namespace AutoTypeSearch
 {
 	partial class Options
 	{
@@ -44,7 +46,7 @@
 			this.mSearchInTitle = new System.Windows.Forms.CheckBox();
 			this.mAlternativeAction = new System.Windows.Forms.ComboBox();
 			this.mDefaultAction = new System.Windows.Forms.ComboBox();
-			this.mShowHotKeyTextBox = new System.Windows.Forms.TextBox();
+			this.mShowHotKeyControl = new KeePass.UI.HotKeyControlEx();
 			this.mShowSearchGroup = new System.Windows.Forms.GroupBox();
 			this.mShowOnHotKey = new System.Windows.Forms.CheckBox();
 			this.mShowOnIPC = new System.Windows.Forms.CheckBox();
@@ -224,19 +226,19 @@
 			defaultActionLabel.TabIndex = 0;
 			defaultActionLabel.Text = "De&fault action (Enter):";
 			// 
-			// mShowHotKeyTextBox
+			// mShowHotKeyControl
 			// 
-			this.mShowHotKeyTextBox.Location = new System.Drawing.Point(30, 65);
-			this.mShowHotKeyTextBox.Name = "mShowHotKeyTextBox";
-			this.mShowHotKeyTextBox.Size = new System.Drawing.Size(123, 20);
-			this.mShowHotKeyTextBox.TabIndex = 2;
+			this.mShowHotKeyControl.Location = new System.Drawing.Point(30, 65);
+			this.mShowHotKeyControl.Name = "mShowHotKeyControl";
+			this.mShowHotKeyControl.Size = new System.Drawing.Size(123, 20);
+			this.mShowHotKeyControl.TabIndex = 2;
 			// 
 			// mShowSearchGroup
 			// 
 			this.mShowSearchGroup.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
 			this.mShowSearchGroup.Controls.Add(this.mShowOnHotKey);
-			this.mShowSearchGroup.Controls.Add(this.mShowHotKeyTextBox);
+			this.mShowSearchGroup.Controls.Add(this.mShowHotKeyControl);
 			this.mShowSearchGroup.Controls.Add(this.mShowOnIPC);
 			this.mShowSearchGroup.Controls.Add(this.mShowOnFailedSearch);
 			this.mShowSearchGroup.Location = new System.Drawing.Point(6, 12);
@@ -264,7 +266,7 @@
 			this.mShowOnIPC.Name = "mShowOnIPC";
 			this.mShowOnIPC.Size = new System.Drawing.Size(386, 17);
 			this.mShowOnIPC.TabIndex = 3;
-			this.mShowOnIPC.Text = "Show when \"/e:AutoTypeSearch\" is passed as a &parameter to KeePass.exe";
+			this.mShowOnIPC.Text = "Show when \"/e1:AutoTypeSearch\" is passed as a &parameter to KeePass.exe";
 			this.mShowOnIPC.UseVisualStyleBackColor = true;
 			// 
 			// mShowOnFailedSearch
@@ -301,7 +303,7 @@
 
 		#endregion
 
-		private System.Windows.Forms.TextBox mShowHotKeyTextBox;
+		private KeePass.UI.HotKeyControlEx mShowHotKeyControl;
 		private System.Windows.Forms.CheckBox mShowOnHotKey;
 		private System.Windows.Forms.CheckBox mShowOnIPC;
 		private System.Windows.Forms.CheckBox mShowOnFailedSearch;
