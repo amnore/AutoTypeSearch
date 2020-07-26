@@ -134,6 +134,15 @@ namespace AutoTypeSearch.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Perform password auto-type.
+        /// </summary>
+        internal static string PerformAutoTypePassword {
+            get {
+                return ResourceManager.GetString("PerformAutoTypePassword", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Show entry in the main window.
         /// </summary>
         internal static string ShowEntry {

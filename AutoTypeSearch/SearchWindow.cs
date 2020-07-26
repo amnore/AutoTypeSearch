@@ -832,6 +832,9 @@ namespace AutoTypeSearch
 					case Actions.CopyPassword:
 						CopyPassword(searchResult);
 						break;
+					case Actions.PerformAutoTypePassword:
+						AutoTypePassword(searchResult);
+						break;
 					default:
 						throw new ArgumentOutOfRangeException("action");
 				}
@@ -920,6 +923,29 @@ namespace AutoTypeSearch
 			}
 		}
 		
+		private void AutoTypePassword(SearchResult searchResult)
+		{
+			var seq = @"{PASSWORD}";
+			bool result;
+			if (ActiveForm != null)
+			{
+				result = AutoType.PerformIntoPreviousWindow(mMainForm, searchResult.Entry, searchResult.Database, seq);
+			}
+			else
+			{
+				result = AutoType.PerformIntoCurrentWindow(searchResult.Entry, searchResult.Database, seq);
+			}
+			if (!result)
+			{
+				SystemSounds.Beep.Play();
+
+				if (Settings.Default.AlternativeAction != Actions.PerformAutoTypePassword)
+				{
+					PerformAction(Settings.Default.AlternativeAction, searchResult);
+				}
+			}
+		}
+
 		#endregion
 	}
 }
